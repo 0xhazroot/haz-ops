@@ -7,14 +7,15 @@
   <h1>🌌 Samir Haziel — Cloud & DevOps Engineer Portfolio</h1>
   
   <p>
-    <strong>Arquitectura Resiliente • Automatización • Infraestructura como Código (IaC)</strong>
+    <strong>Arquitectura Cloud Resiliente • Infraestructura como Código (IaC) • CI/CD & DevSecOps</strong>
   </p>
 
   <p>
-    <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></a>
-    <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" alt="Vite" /></a>
-    <a href="https://www.framer.com/motion/"><img src="https://img.shields.io/badge/Framer_Motion-black?style=for-the-badge&logo=framer&logoColor=blue" alt="Framer Motion" /></a>
-    <a href="https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API"><img src="https://img.shields.io/badge/HTML5_Canvas-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="Canvas" /></a>
+    <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></a>
+    <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite_8-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" alt="Vite" /></a>
+    <a href="https://aws.amazon.com/"><img src="https://img.shields.io/badge/AWS_Cloud-232F3E?style=for-the-badge&logo=amazonwebservices&logoColor=FF9900" alt="AWS" /></a>
+    <a href="https://www.terraform.io/"><img src="https://img.shields.io/badge/Terraform_IaC-844FBA?style=for-the-badge&logo=terraform&logoColor=white" alt="Terraform" /></a>
+    <a href="https://vercel.com/"><img src="https://img.shields.io/badge/Vercel_Edge-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" /></a>
   </p>
 </div>
 
@@ -22,75 +23,71 @@
 
 ## ⚡ Sobre el Proyecto
 
-Este repositorio contiene el código fuente de mi **Portafolio Profesional**. Ha sido diseñado bajo una estricta filosofía minimalista y elegante, enfocada en la experiencia de usuario (UX) y el altísimo rendimiento (Zero lag). 
-
-En el fondo, un algoritmo en puro `Canvas API` genera una **malla de nodos 3D** en tiempo real que reacciona sutilmente al ratón, representando una red de clústeres y orquestación distribuida (como *Kubernetes*).
-
-### ✨ Características Destacadas
-- 🪟 **Glassmorphism UI:** Tarjetas translúcidas para un efecto inmersivo.
-- 📉 **Zero Bloatware:** Código CSS nativo y JavaScript puro para las físicas computacionales, sin pesadas librerías 3D de terceros.
-- 🎬 **Animaciones Sedosas:** Revelado en cascada y transiciones potenciadas por *Framer Motion*.
-- 📱 **100% Responsivo:** Adaptado matemáticamente a cualquier pantalla (Mobile First interpolado).
+Este repositorio contiene la arquitectura y el código fuente de mi **Portafolio Profesional** como Cloud & DevOps Engineer. Diseñado con una experiencia inmersiva y moderna en el frontend, y respaldado por prácticas sólidas de ingeniería de infraestructura en la nube.
 
 ---
 
-## 🛠️ Stack Tecnológico & Herramientas
+## ☁️ Arquitectura Cloud en AWS (Infraestructura como Código con Terraform)
 
-Mi enfoque profesional abarca el ciclo de vida completo de DevOps:
+El proyecto incluye una arquitectura estandarizada en AWS contenida en el directorio [`/terraform`](./terraform), implementada con principios de **Zero-Trust** y alta disponibilidad:
 
-| Categoría | Tecnologías Clave |
+```mermaid
+graph LR
+    User([🌐 Usuario en Internet]) -->|HTTPS / TLS| CF[🛡️ AWS CloudFront CDN]
+    CF -->|Origin Access Control SigV4| S3[(🪣 AWS S3 Bucket)]
+    subgraph AWS Cloud [Infraestructura Gestionada con Terraform]
+        CF
+        S3
+    end
+```
+
+### 🔒 Pilares de la Arquitectura AWS:
+1. **AWS S3 (Almacenamiento Estático):** Alojamiento de los artefactos compilados de la SPA (`dist/`). El bucket tiene **bloqueo total de acceso público** activado (`BlockPublicAcls = true`, `BlockPublicPolicy = true`).
+2. **AWS CloudFront (CDN Perimetral):** Distribuye el contenido a través de más de 400 puntos de presencia globales (Edge Locations) con compresión Gzip/Brotli y certificado SSL automático.
+3. **Origin Access Control (OAC):** Mecanismo de seguridad de última generación de AWS que autentica cada petición entre CloudFront y S3 mediante firmas criptográficas SigV4, garantizando que nadie pueda evadir la CDN ni acceder directamente al bucket.
+4. **Manejo de Errores SPA:** Respuestas de error personalizadas para redirigir códigos 403/404 hacia `/index.html` con código HTTP 200, permitiendo enrutamiento fluido en el cliente.
+
+> 📖 *Para ver la guía paso a paso de inicialización (`terraform init`, `plan`, `apply`), consulta [terraform/README.md](./terraform/README.md).*
+
+---
+
+## 🛠️ Stack Tecnológico
+
+| Área | Tecnologías |
 | :--- | :--- |
-| **Orquestación & Contenedores** | 🐋 Docker, ☸️ Kubernetes |
-| **Cloud Computing** | ☁️ AWS, ☁️ Azure |
-| **Infraestructura (IaC)** | 🏗️ Terraform |
-| **Automatización (CI/CD)** | 🤖 GitHub Actions, 🛠️ Jenkins, ⚙️ Ansible |
-| **Observabilidad & Monitorización** | 📊 Prometheus, 📈 Grafana |
-| **Sistemas Base** | 🐧 GNU/Linux, 🐚 Bash Scripting |
+| **Cloud Computing** | ☁️ AWS (S3, CloudFront, OAC, IAM, Route53), ⚡ Vercel Edge Network |
+| **Infraestructura como Código (IaC)** | 🏗️ Terraform (HCL), Módulos reutilizables |
+| **Contenedores & Orquestación** | 🐋 Docker, Docker Compose, ☸️ Kubernetes |
+| **Automatización & CI/CD** | 🤖 GitHub Actions, Dependabot |
+| **Frontend & UI Engine** | ⚛️ React 19, ⚡ Vite 8, 🎬 Framer Motion, 🎨 Canvas API (Nodos 3D) |
 
 ---
 
-## 🚀 Despliegue Local
+## 🚀 Despliegue
 
-### Opción A: Usando NPM (Tradicional)
+### 1. Despliegue en la Nube (AWS con Terraform)
 ```bash
-# 1. Instala las dependencias
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+### 2. Despliegue Rápido (Vercel)
+El proyecto está preconfigurado con [`vercel.json`](./vercel.json) para despliegues instantáneos desde GitHub con soporte SPA y optimización de caché.
+
+### 3. Ejecución Local (Desarrollo)
+```bash
+# Instalar dependencias
 npm install
 
-# 2. Inicia el servidor de desarrollo
+# Iniciar servidor local
 npm run dev
 ```
 
-### Opción B: Usando Docker (Recomendado si NPM falla) 🐋
-Contenedor optimizado para desarrollo con Hot Reload:
-
-```bash
-# 1. Iniciar en modo desarrollo (reemplaza npm run dev)
-docker-compose up dev
-
-# 2. (Opcional) Construir y correr versión de producción
-docker-compose up app
-```
-
-*(Luego, abre `http://localhost:5173/` para la versión de desarrollo o `http://localhost:8080/` para la producción)*.
-
 ---
 
-## 🤖 Mantenimiento & Automatización (DevOps)
+## 🤖 Mantenimiento & Automatización
 
-Este proyecto está configurado para ser **autónomo** y **escalable**:
-
-### 📦 CI/CD (GitHub Actions)
-Cada vez que subas cambios a la rama `main`, GitHub:
-1. Verifica que el proyecto compile correctamente.
-2. Construye una nueva imagen de Docker.
-3. La sube automáticamente a tu **Docker Hub**.
-
-### 🛠️ Dependabot
-GitHub revisará semanalmente si hay actualizaciones de seguridad o de librerías (Vite, React, Framer Motion) y creará una *Pull Request* para que las aceptes con un solo clic.
-
-### 🔑 Configuración de Secretos
-Para que el robot pueda subir imágenes a tu Docker Hub, añade estos dos secretos en `Settings > Secrets and variables > Actions`:
-*   `DOCKER_USERNAME`: Tu usuario de Docker Hub.
-*   `DOCKER_PASSWORD`: Tu Access Token de Docker Hub.
-
----
+- **Dependabot:** Actualizaciones de seguridad automáticas semanales para dependencias npm y providers de Terraform.
+- **Auditoría de dependencias:** Verificación continua de vulnerabilidades en librerías de producción.

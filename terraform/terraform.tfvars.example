@@ -1,0 +1,4 @@
+# Variables de entorno por defecto
+aws_region   = "us-east-1"
+project_name = "haz-ops"
+environment  = "prod"
