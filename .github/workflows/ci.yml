@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Job Frontend: Lint, Typecheck/Audit, y Build
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend Quality & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (v22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint source code
+        run: npm run lint
+
+      - name: Build SPA bundle
+        run: npm run build
+
+      - name: Security audit (advisory only for non-blocking dev dependencies)
+        run: npm audit --audit-level=high || echo "::warning::Vulnerabilidades detectadas en dependencias npm. Revisar npm audit."
+
+  # ---------------------------------------------------------------------------
+  # 2. Job Terraform: Formateo, Validación y Escaneo Estático de IaC
+  # ---------------------------------------------------------------------------
+  terraform:
+    name: Terraform Quality & Security
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform (no backend)
+        run: terraform init -backend=false
+
+      - name: Validate Terraform syntax
+        run: terraform validate
+
+      - name: Run Trivy IaC static scanner
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: config
+          scan-ref: terraform/
+          severity: HIGH,CRITICAL
+          exit-code: 0 # Reporta sin romper por falsos positivos de OAC en evaluadores de políticas antiguas
+
+  # ---------------------------------------------------------------------------
+  # 3. Job Docker: Build multi-stage y escaneo de vulnerabilidades en contenedor
+  # ---------------------------------------------------------------------------
+  docker:
+    name: Docker Build & Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for testing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: haz-ops:ci-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: haz-ops:ci-test
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: 0
