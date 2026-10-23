@@ -1,17 +1,50 @@
 version: 2
 updates:
+  # Dependencias del Frontend (npm)
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
+  # Acciones de GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
+  # Imágenes base de Docker
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Proveedores y módulos de Terraform
+  - package-ecosystem: "terraform"
+    directory: "/terraform"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      terraform-providers:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
