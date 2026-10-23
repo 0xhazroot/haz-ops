@@ -15,7 +15,6 @@
     <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite_8-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" alt="Vite" /></a>
     <a href="https://aws.amazon.com/"><img src="https://img.shields.io/badge/AWS_Cloud-232F3E?style=for-the-badge&logo=amazonwebservices&logoColor=FF9900" alt="AWS" /></a>
     <a href="https://www.terraform.io/"><img src="https://img.shields.io/badge/Terraform_IaC-844FBA?style=for-the-badge&logo=terraform&logoColor=white" alt="Terraform" /></a>
-    <a href="https://vercel.com/"><img src="https://img.shields.io/badge/Vercel_Edge-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" /></a>
   </p>
 </div>
 
@@ -55,7 +54,7 @@ graph LR
 
 | Área | Tecnologías |
 | :--- | :--- |
-| **Cloud Computing** | ☁️ AWS (S3, CloudFront, OAC, IAM, Route53), ⚡ Vercel Edge Network |
+| **Cloud Computing** | ☁️ AWS (S3, CloudFront, OAC) |
 | **Infraestructura como Código (IaC)** | 🏗️ Terraform (HCL), Módulos reutilizables |
 | **Contenedores & Orquestación** | 🐋 Docker, Docker Compose, ☸️ Kubernetes |
 | **Automatización & CI/CD** | 🤖 GitHub Actions, Dependabot |
@@ -73,10 +72,7 @@ terraform plan
 terraform apply
 ```
 
-### 2. Despliegue Rápido (Vercel)
-El proyecto está preconfigurado con [`vercel.json`](./vercel.json) para despliegues instantáneos desde GitHub con soporte SPA y optimización de caché.
-
-### 3. Ejecución Local (Desarrollo)
+### 2. Ejecución Local (Desarrollo)
 ```bash
 # Instalar dependencias
 npm install
