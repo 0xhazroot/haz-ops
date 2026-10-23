@@ -1,10 +1,31 @@
 services:
-  portfolio:
-    image: node:22-alpine
+  # ---------------------------------------------------------------------------
+  # Servicio de Desarrollo Local: Hot-reload con Vite
+  # Uso: docker compose --profile dev up
+  # ---------------------------------------------------------------------------
+  dev:
+    profiles: ["dev"]
+    image: node:22.14.0-alpine3.21
     working_dir: /app
     ports:
       - "5173:5173"
+    environment:
+      - NODE_ENV=development
     volumes:
       - .:/app
       - /app/node_modules
-    command: sh -c "npm install && npm run dev"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+  # ---------------------------------------------------------------------------
+  # Servicio de Producción Local (Preview): Construye y corre la imagen Nginx
+  # Uso: docker compose --profile prod up --build
+  # ---------------------------------------------------------------------------
+  prod-preview:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: haz-ops:prod-preview
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

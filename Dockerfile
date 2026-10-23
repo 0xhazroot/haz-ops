@@ -1,23 +1,38 @@
-# Stage 1: Build the React app
+# =============================================================================
+# Stage 1: Build de la SPA con Node.js
+# =============================================================================
 FROM node:22.14.0-alpine3.21 AS build
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package*.json ./
-RUN npm install
+# Copia de manifiestos y resolución estricta con npm ci
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Copy the rest of the application and build
+# Compilación de la aplicación para producción
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve the app with Nginx
-FROM nginx:stable-alpine
+# =============================================================================
+# Stage 2: Runtime unprivileged con Nginx (non-root)
+# =============================================================================
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 
-# Copy the build output from Stage 1 to Nginx's public directory
-COPY --from=build /app/dist /usr/share/nginx/html
+LABEL org.opencontainers.image.title="haz-ops" \
+      org.opencontainers.image.description="Cloud & DevOps Engineer Portfolio SPA" \
+      org.opencontainers.image.source="https://github.com/0xhazroot/haz-ops" \
+      org.opencontainers.image.licenses="MIT"
 
-# Expose port 80
-EXPOSE 80
+# Sustitución de la configuración default por la optimizada para SPA
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Start Nginx
+# Copia de artefactos compilados hacia el directorio estático
+COPY --from=build --chown=nginx:nginx /app/dist /usr/share/nginx/html
+
+# Puerto no privilegiado expuesto por la imagen base
+EXPOSE 8080
+
+# Sonda de salud activa
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1
+
 CMD ["nginx", "-g", "daemon off;"]
