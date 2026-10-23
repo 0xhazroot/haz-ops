@@ -15,7 +15,7 @@ RUN npm run build
 # =============================================================================
 # Stage 2: Runtime unprivileged con Nginx (non-root)
 # =============================================================================
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 
 LABEL org.opencontainers.image.title="haz-ops" \
       org.opencontainers.image.description="Cloud & DevOps Engineer Portfolio SPA" \
