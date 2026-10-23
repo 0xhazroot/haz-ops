@@ -6,11 +6,15 @@ resource "random_id" "bucket_suffix" {
 }
 
 resource "aws_s3_bucket" "frontend_bucket" {
-  bucket        = "${var.project_name}-frontend-${random_id.bucket_suffix.hex}"
+  bucket = "${var.project_name}-frontend-${random_id.bucket_suffix.hex}"
+
+  # Decisión arquitectónica consciente: se activa force_destroy para permitir
+  # la destrucción y reprovisionamiento idempotente de este portafolio efímero,
+  # sin requerir vaciado manual previo de objetos estáticos en S3.
   force_destroy = true
 }
 
-# Bloqueo total de acceso público directo a S3 (Best Practice: Solo accesible vía CloudFront OAC)
+# Bloqueo total de acceso público directo a S3 (Zero-Trust: Solo accesible vía CloudFront OAC)
 resource "aws_s3_bucket_public_access_block" "frontend_bucket_public_access" {
   bucket = aws_s3_bucket.frontend_bucket.id
 
@@ -32,13 +36,57 @@ resource "aws_cloudfront_origin_access_control" "oac" {
 }
 
 # -----------------------------------------------------------------------------
-# 3. Distribución Global CloudFront (CDN + TLS + Caching)
+# 3. Políticas de Seguridad HTTP en CloudFront (Response Headers Policy)
+# -----------------------------------------------------------------------------
+resource "aws_cloudfront_response_headers_policy" "security_headers" {
+  name    = "${var.project_name}-security-headers"
+  comment = "Cabeceras de endurecimiento HTTP para proteccion contra Clickjacking, MIME sniffing y XSS"
+
+  security_headers_config {
+    content_type_options {
+      override = true
+    }
+
+    frame_options {
+      frame_option = "DENY"
+      override     = true
+    }
+
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = true
+    }
+
+    strict_transport_security {
+      access_control_max_age_sec = 31536000
+      include_subdomains         = true
+      preload                    = true
+      override                   = true
+    }
+
+    content_security_policy {
+      content_security_policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self';"
+      override                = true
+    }
+  }
+}
+
+# Data source de la Managed Cache Policy "CachingOptimized" de AWS
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
+}
+
+# -----------------------------------------------------------------------------
+# 4. Distribución Global CloudFront (CDN + TLS + Caching + Security Headers)
 # -----------------------------------------------------------------------------
 resource "aws_cloudfront_distribution" "s3_distribution" {
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "Distribucion CDN para ${var.project_name} (${var.environment})"
   default_root_object = "index.html"
+
+  # Optimización de costos: PriceClass_100 cubre América del Norte y Europa sin incurrir en costos de zonas caras
+  price_class = var.price_class
 
   origin {
     domain_name              = aws_s3_bucket.frontend_bucket.bucket_regional_domain_name
@@ -51,17 +99,11 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-${aws_s3_bucket.frontend_bucket.id}"
 
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
-    }
+    # Reemplazo de forwarded_values legado por Cache Policy administrada de AWS (CachingOptimized)
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security_headers.id
 
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
     compress               = true
   }
 
@@ -90,7 +132,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 }
 
 # -----------------------------------------------------------------------------
-# 4. S3 Bucket Policy (Autoriza lectura únicamente a la distribución CloudFront)
+# 5. S3 Bucket Policy (Autoriza lectura únicamente a la distribución CloudFront)
 # -----------------------------------------------------------------------------
 resource "aws_s3_bucket_policy" "allow_cloudfront_oac" {
   bucket = aws_s3_bucket.frontend_bucket.id
@@ -99,8 +141,8 @@ resource "aws_s3_bucket_policy" "allow_cloudfront_oac" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontServicePrincipalReadOnly"
-        Effect    = "Allow"
+        Sid    = "AllowCloudFrontServicePrincipalReadOnly"
+        Effect = "Allow"
         Principal = {
           Service = "cloudfront.amazonaws.com"
         }

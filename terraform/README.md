@@ -1,84 +1,73 @@
-# Guía Práctica de Despliegue en AWS con Terraform
+# Guía de Infraestructura como Código (Terraform) — haz-ops
 
-Esta arquitectura despliega el frontend estático en **AWS S3** protegido tras una CDN global con **AWS CloudFront** utilizando **Origin Access Control (OAC)**.
+Este directorio gestiona la infraestructura en AWS (S3, CloudFront OAC, políticas IAM y cabeceras de endurecimiento HTTP) de forma declarativa y reproducible.
 
----
-
-## 🏛️ Diagrama de Arquitectura
-
-```
-Usuario (Internet)
-       │ (HTTPS)
-       ▼
-[AWS CloudFront CDN]  <-- Caché perimetral global + TLS
-       │ (OAC - Origin Access Control / SigV4)
-       ▼
- [AWS S3 Bucket]      <-- Acceso público bloqueado (Zero-Trust)
-```
+Para la visión global de arquitectura y decisiones técnicas, consulta el [README principal del repositorio](../README.md).
 
 ---
 
 ## 📋 Prerrequisitos
 
-1. **AWS CLI** instalado y configurado con tus credenciales:
-   ```bash
-   aws configure
-   ```
-2. **Terraform** instalado (versión >= 1.5.0):
-   ```bash
-   terraform -v
-   ```
+- **Terraform** `>= 1.5.0`
+- **AWS CLI v2** configurado con credenciales (`aws configure`) o variables de entorno estándar (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`).
 
 ---
 
-## 🚀 Despliegue Paso a Paso
+## 🚀 Flujo Seguro de Despliegue
 
-### 1. Inicializar Terraform
-Descarga el provider oficial de AWS:
+Sigue el flujo estándar de ingeniería de plataforma: formateo, validación, generación de plan de ejecución auditado y aplicación inmutable.
+
+### 1. Formato y Validación Estática
 ```bash
-cd terraform
+terraform fmt -check
+terraform validate
+```
+
+### 2. Inicialización
+Descarga e inicializa los providers (`aws`, `random`) fijados en `.terraform.lock.hcl`:
+```bash
 terraform init
 ```
 
-### 2. Planificar la Infraestructura
-Revisa los recursos que se van a crear (Bucket S3, OAC, Distribución CloudFront, Políticas IAM de Bucket):
+### 3. Planificación Auditada
+Genera un archivo de plan binario (`tfplan`) para garantizar que lo que apruebas sea exactamente lo que se aplique:
 ```bash
-terraform plan
+terraform plan -out=tfplan
 ```
 
-### 3. Aplicar y Crear los Recursos
+### 4. Aplicación Controlada
+Aplica el plan previamente generado sin margen de error humano:
 ```bash
-terraform apply -auto-approve
+terraform apply tfplan
 ```
-Al finalizar, Terraform mostrará los `outputs`:
-- `s3_bucket_name`: Nombre del bucket único creado.
-- `cloudfront_domain_name`: URL pública HTTPS (ej. `https://d123456abcdef8.cloudfront.net`).
-- `cloudfront_distribution_id`: ID para invalidaciones de caché.
 
----
-
-### 4. Compilar y Subir el Portafolio a S3
-
-Compila el proyecto React/Vite desde la raíz y sube la carpeta `dist`:
-
+Al finalizar, consulta los outputs de conexión:
 ```bash
-# Desde la raíz del proyecto
-npm run build
-
-# Sincronizar archivos con el bucket S3 creado
-aws s3 sync dist/ s3://<s3_bucket_name> --delete
-
-# Invalidar la caché de CloudFront para reflejar cambios de inmediato
-aws cloudfront create-invalidation --distribution-id <cloudfront_distribution_id> --paths "/*"
+terraform output
 ```
 
 ---
 
-## 🧹 Destrucción de Recursos (Para evitar costos innecesarios)
+## 📦 Migración a Estado Remoto con Bloqueo (Roadmap)
 
-Si estás practicando y deseas eliminar toda la infraestructura creada en AWS:
+Actualmente este repositorio usa estado local para bootstrapping individual. Para equipos o pipelines compartidos, consulta la plantilla [backend.tf.example](./backend.tf.example):
+
+1. Provisiona un bucket S3 privado con versionado y cifrado AES256.
+2. Provisiona una tabla DynamoDB (`terraform-locks`) con clave de partición `LockID` (String).
+3. Renombra `backend.tf.example` a `backend.tf` y ajusta los nombres.
+4. Ejecuta:
+   ```bash
+   terraform init -migrate-state
+   ```
+
+---
+
+## ⚠️ Destrucción Controlada de Recursos
+
+> [!WARNING]
+> La destrucción eliminará la CDN perimetral y el bucket S3 (incluyendo su contenido por `force_destroy = true`). Ejecuta únicamente cuando desees retirar la infraestructura para evitar costes residuales:
 
 ```bash
-cd terraform
-terraform destroy -auto-approve
+terraform plan -destroy -out=destroy.tfplan
+terraform apply destroy.tfplan
 ```
