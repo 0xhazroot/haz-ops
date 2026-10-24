@@ -32,17 +32,17 @@ graph TD
     classDef edge fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
     classDef storage fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc;
 
-    User([Cliente Web]):::client -->|HTTPS / TLSv1.2+| CF[AWS CloudFront CDN<br/>PriceClass_100]:::edge
+    User(["Cliente Web"]):::client -->|HTTPS / TLSv1.2+| CF["AWS CloudFront CDN<br/>PriceClass_100"]:::edge
     
-    subgraph Edge Layer [Perímetro y Distribución Global]
-        CF --> HP[Response Headers Policy<br/>HSTS + CSP + X-Frame + nosniff]:::edge
-        CF --> CP[Managed Cache Policy<br/>CachingOptimized]:::edge
-        CF --> ERR{Error 403 / 404?}:::edge
-        ERR -->|Rewrite 200 OK| SPA[/index.html<br/>SPA Client Routing]:::edge
+    subgraph EdgeLayer ["Perímetro y Distribución Global"]
+        CF --> HP["Response Headers Policy<br/>HSTS + CSP + X-Frame + nosniff"]:::edge
+        CF --> CP["Managed Cache Policy<br/>CachingOptimized"]:::edge
+        CF --> ERR{"¿Error 403 / 404?"}:::edge
+        ERR -->|Rewrite 200 OK| SPA["index.html<br/>SPA Client Routing"]:::edge
     end
 
-    subgraph Storage Layer [Zero-Trust Storage]
-        CF -->|Origin Access Control SigV4| S3[(AWS S3 Private Bucket<br/>Public Access Blocked)]:::storage
+    subgraph StorageLayer ["Zero-Trust Storage"]
+        CF -->|Origin Access Control SigV4| S3[("AWS S3 Private Bucket<br/>Public Access Blocked")]:::storage
     end
 ```
 
@@ -56,21 +56,21 @@ graph LR
     classDef job fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
     classDef deploy fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc;
 
-    Push([Push / PR]):::trigger --> CI[Workflow CI]:::job
+    Push(["Push / PR"]):::trigger --> CI["Workflow CI"]:::job
     
-    subgraph CI Pipeline [Validación y Seguridad Shift-Left]
-        CI --> F[Frontend Job<br/>npm ci + lint + build + audit]:::job
-        CI --> T[Terraform Job<br/>fmt + validate + Trivy IaC]:::job
-        CI --> D[Docker Job<br/>multi-stage build + Trivy scan]:::job
+    subgraph CIPipeline ["Validación y Seguridad Shift-Left"]
+        CI --> F["Frontend Job<br/>npm ci + lint + build + audit"]:::job
+        CI --> T["Terraform Job<br/>fmt + validate + Trivy IaC"]:::job
+        CI --> D["Docker Job<br/>multi-stage build + Trivy scan"]:::job
     end
 
-    CI -->|Push a main & CI verde| CD[Workflow Deploy]:::deploy
+    CI -->|Push a main & CI verde| CD["Workflow Deploy"]:::deploy
 
-    subgraph CD Pipeline [Entrega Continua Inmutable]
-        CD --> OIDC[Auth AWS via OIDC<br/>Role sin llaves estáticas]:::deploy
-        CD --> SYNC1[Sync /assets<br/>Cache-Control: immutable]:::deploy
-        CD --> SYNC2[Sync root & index.html<br/>Cache-Control: no-cache]:::deploy
-        CD --> INV[CloudFront Invalidation<br/>Cache Purge /*]:::deploy
+    subgraph CDPipeline ["Entrega Continua Inmutable"]
+        CD --> OIDC["Auth AWS via OIDC<br/>Role sin llaves estáticas"]:::deploy
+        CD --> SYNC1["Sync /assets<br/>Cache-Control: immutable"]:::deploy
+        CD --> SYNC2["Sync root & index.html<br/>Cache-Control: no-cache"]:::deploy
+        CD --> INV["CloudFront Invalidation<br/>Cache Purge /*"]:::deploy
     end
 ```
 
