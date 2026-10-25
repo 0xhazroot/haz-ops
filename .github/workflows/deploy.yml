@@ -57,9 +57,11 @@ jobs:
 
       - name: Sync static assets to S3 (Cache-Control immutable)
         run: |
+          aws s3 ls "s3://${S3_BUCKET}" || true
           aws s3 sync dist/assets/ "s3://${S3_BUCKET}/assets/" \
             --delete \
-            --cache-control "public, max-age=31536000, immutable"
+            --cache-control "public, max-age=31536000, immutable" \
+            --debug 2>&1 | tail -n 30
 
       - name: Sync root files to S3 (Cache-Control no-cache)
         run: |
