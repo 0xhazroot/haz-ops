@@ -83,7 +83,8 @@ resource "aws_iam_role_policy" "github_actions_permissions" {
           "s3:PutObject",
           "s3:GetObject",
           "s3:ListBucket",
-          "s3:DeleteObject"
+          "s3:DeleteObject",
+          "s3:GetBucketLocation"
         ]
         Resource = [
           aws_s3_bucket.frontend_bucket.arn,
