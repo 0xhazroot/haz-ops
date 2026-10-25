@@ -13,6 +13,14 @@ permissions:
   id-token: write
   contents: read
 
+# Identificadores de recursos (no son secretos). Las variables de GitHub
+# tienen prioridad; si no existen se usan los valores creados por Terraform.
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN || 'arn:aws:iam::891762599488:role/haz-ops-github-actions-deploy' }}
+  S3_BUCKET: ${{ vars.AWS_S3_BUCKET || 'haz-ops-frontend-a29b1390' }}
+  CF_DISTRIBUTION_ID: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID || 'E5VVO550912H8' }}
+
 jobs:
   deploy:
     name: Deploy to S3 & CloudFront (OIDC)
@@ -20,10 +28,10 @@ jobs:
     environment: production
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js (v22)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -34,42 +42,28 @@ jobs:
       - name: Build SPA bundle
         run: npm run build
 
-      - name: Verify OIDC claims & config
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
-        run: |
-          echo "Verifying environment variables..."
-          echo "AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}"
-          echo "AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}"
-          echo "AWS_CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }}"
-          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then
-            RAW_RESP=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
-            JWT_TOKEN=$(echo "$RAW_RESP" | jq -r '.value // empty')
-            if [ -n "$JWT_TOKEN" ]; then
-              CLAIMS=$(echo "$JWT_TOKEN" | awk -F'.' '{print $2}' | tr '_-' '/+' | base64 -d 2>/dev/null || true)
-              echo "Token audience (aud): $(echo "$CLAIMS" | jq -r '.aud // empty')"
-              echo "Token subject (sub): $(echo "$CLAIMS" | jq -r '.sub // empty')"
-              echo "Token repository: $(echo "$CLAIMS" | jq -r '.repository // empty')"
-            fi
-          fi
-
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
+
+      - name: Show deploy target
+        run: |
+          echo "Bucket:       ${S3_BUCKET}"
+          echo "Distribution: ${CF_DISTRIBUTION_ID}"
+          aws sts get-caller-identity
 
       - name: Sync static assets to S3 (Cache-Control immutable)
         run: |
-          aws s3 sync dist/assets/ s3://${{ vars.AWS_S3_BUCKET }}/assets/ \
+          aws s3 sync dist/assets/ "s3://${S3_BUCKET}/assets/" \
             --delete \
             --cache-control "public, max-age=31536000, immutable"
 
       - name: Sync root files to S3 (Cache-Control no-cache)
         run: |
-          aws s3 sync dist/ s3://${{ vars.AWS_S3_BUCKET }}/ \
+          aws s3 sync dist/ "s3://${S3_BUCKET}/" \
             --delete \
             --exclude "assets/*" \
             --cache-control "no-cache, no-store, must-revalidate"
@@ -77,5 +71,5 @@ jobs:
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --distribution-id "${CF_DISTRIBUTION_ID}" \
             --paths "/*"

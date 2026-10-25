@@ -69,13 +69,13 @@ jobs:
       - name: Validate Terraform syntax
         run: terraform validate
 
+      # Trivy se ejecuta con su imagen oficial (sin depender de tags de trivy-action)
+      # exit-code 0: reporta sin romper por falsos positivos de OAC
       - name: Run Trivy IaC static scanner
-        uses: aquasecurity/trivy-action@v0.29.0
-        with:
-          scan-type: config
-          scan-ref: terraform/
-          severity: HIGH,CRITICAL
-          exit-code: 0 # Reporta sin romper por falsos positivos de OAC en evaluadores de políticas antiguas
+        working-directory: .
+        run: |
+          docker run --rm -v "$PWD/terraform:/src" aquasec/trivy:latest \
+            config /src --severity HIGH,CRITICAL --exit-code 0
 
   # ---------------------------------------------------------------------------
   # 3. Job Docker: Build multi-stage y escaneo de vulnerabilidades en contenedor
@@ -100,9 +100,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@v0.29.0
-        with:
-          image-ref: haz-ops:ci-test
-          format: table
-          severity: CRITICAL,HIGH
-          exit-code: 0
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest \
+            image haz-ops:ci-test --severity CRITICAL,HIGH --exit-code 0 --format table
