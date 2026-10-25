@@ -37,3 +37,6 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+# Documentacion privada y notas de estudio locales
+docs/
