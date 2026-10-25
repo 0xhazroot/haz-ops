@@ -23,8 +23,8 @@ variable "github_repository" {
 resource "aws_iam_openid_connect_provider" "github_actions" {
   count = var.enable_github_oidc ? 1 : 0
 
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com", "https://github.com/0xhazroot"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com", "https://github.com/0xhazroot"]
   thumbprint_list = [
     "6938fd4d98bab03faadb97b34396831e3780aea1",
     "1c5876126b3040e277a7b3db0ed7ea7d49ff540a",
