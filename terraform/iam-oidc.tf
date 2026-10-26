@@ -80,11 +80,7 @@ resource "aws_iam_role_policy" "github_actions_permissions" {
         Sid    = "S3SyncPermissions"
         Effect = "Allow"
         Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket",
-          "s3:DeleteObject",
-          "s3:GetBucketLocation"
+          "s3:*"
         ]
         Resource = [
           aws_s3_bucket.frontend_bucket.arn,
