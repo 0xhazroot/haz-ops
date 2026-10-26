@@ -24,7 +24,7 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
   count = var.enable_github_oidc ? 1 : 0
 
   url            = "https://token.actions.githubusercontent.com"
-  client_id_list = ["sts.amazonaws.com", "https://github.com/0xhazroot"]
+  client_id_list = ["sts.amazonaws.com"]
   thumbprint_list = [
     "6938fd4d98bab03faadb97b34396831e3780aea1",
     "1c5876126b3040e277a7b3db0ed7ea7d49ff540a",
@@ -49,15 +49,9 @@ resource "aws_iam_role" "github_actions_deploy" {
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
-          StringLike = {
-            "token.actions.githubusercontent.com:sub" = [
-              "repo:${var.github_repository}:*",
-              "repo:0xhazroot*/haz-ops*:*"
-            ]
-            "token.actions.githubusercontent.com:aud" = [
-              "sts.amazonaws.com",
-              "https://github.com/0xhazroot*"
-            ]
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+            "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:production"
           }
         }
       }
@@ -80,7 +74,11 @@ resource "aws_iam_role_policy" "github_actions_permissions" {
         Sid    = "S3SyncPermissions"
         Effect = "Allow"
         Action = [
-          "s3:*"
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
         ]
         Resource = [
           aws_s3_bucket.frontend_bucket.arn,

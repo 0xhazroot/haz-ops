@@ -50,7 +50,7 @@ jobs:
 
       - name: Show deploy target
         run: |
-          echo "::notice::Bucket=${S3_BUCKET} Distribution=${CF_DISTRIBUTION_ID} VarBucket='${{ vars.AWS_S3_BUCKET }}'"
+          echo "::notice::Bucket=${S3_BUCKET} Distribution=${CF_DISTRIBUTION_ID}"
           aws sts get-caller-identity
 
       - name: Sync static assets to S3 (Cache-Control immutable)
