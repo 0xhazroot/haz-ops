@@ -13,13 +13,12 @@ permissions:
   id-token: write
   contents: read
 
-# Identificadores de recursos (no son secretos). Las variables de GitHub
-# tienen prioridad; si no existen se usan los valores creados por Terraform.
+# Identificadores de recursos creados por Terraform (no son secretos).
 env:
-  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN || 'arn:aws:iam::891762599488:role/haz-ops-github-actions-deploy' }}
-  S3_BUCKET: ${{ vars.AWS_S3_BUCKET || 'haz-ops-frontend-a29b1390' }}
-  CF_DISTRIBUTION_ID: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID || 'E5VVO550912H8' }}
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::891762599488:role/haz-ops-github-actions-deploy
+  S3_BUCKET: haz-ops-frontend-a29b1390
+  CF_DISTRIBUTION_ID: E5VVO550912H8
 
 jobs:
   deploy:
@@ -51,15 +50,18 @@ jobs:
 
       - name: Show deploy target
         run: |
-          echo "Bucket:       ${S3_BUCKET}"
-          echo "Distribution: ${CF_DISTRIBUTION_ID}"
+          echo "::notice::Bucket=${S3_BUCKET} Distribution=${CF_DISTRIBUTION_ID} VarBucket='${{ vars.AWS_S3_BUCKET }}'"
           aws sts get-caller-identity
 
       - name: Sync static assets to S3 (Cache-Control immutable)
         run: |
-          aws s3 sync dist/assets/ "s3://${S3_BUCKET}/assets/" \
-            --delete \
-            --cache-control "public, max-age=31536000, immutable"
+          set -o pipefail
+          if ! aws s3 sync dist/assets/ "s3://${S3_BUCKET}/assets/" \
+               --delete \
+               --cache-control "public, max-age=31536000, immutable" 2> err.txt; then
+            echo "::error::$(tr '\n' ' ' < err.txt)"
+            exit 1
+          fi
 
       - name: Sync root files to S3 (Cache-Control no-cache)
         run: |
