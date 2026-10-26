@@ -1,4 +1,6 @@
 
+import { motion } from 'framer-motion';
+
 export default function Hero({ onViewChange }) {
   const containerVars = {
     hidden: { opacity: 0 },
